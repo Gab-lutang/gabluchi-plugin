@@ -37,6 +37,13 @@ jobs:
           zip -r plugin.zip backend plugin.json public readme.md
           ls -la plugin.zip
 
+      - name: Compute digests
+        id: digests
+        shell: bash
+        run: |
+          echo "zip_sha=$(sha256sum plugin.zip | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "dll_sha=$(sha256sum winmm.dll | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
       - name: Generate changelog
         id: changelog
         shell: bash
@@ -63,3 +70,28 @@ jobs:
           files: |
             plugin.zip
             winmm.dll
+
+      - name: Commit release-info.json
+        shell: bash
+        env:
+          TAG: ${{ steps.version.outputs.full }}
+          TAGVER: ${{ steps.version.outputs.tag }}
+          ZIP_SHA: ${{ steps.digests.outputs.zip_sha }}
+          DLL_SHA: ${{ steps.digests.outputs.dll_sha }}
+        run: |
+          BASE="https://github.com/${{ github.repository }}/releases/download"
+          cat > release-info.json <<EOF
+          {
+            "tag_name": "${TAG}",
+            "published_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+            "assets": [
+              { "name": "plugin.zip", "browser_download_url": "${BASE}/${TAG}/plugin.zip", "digest": "${ZIP_SHA}" },
+              { "name": "winmm.dll", "browser_download_url": "${BASE}/${TAG}/winmm.dll", "digest": "${DLL_SHA}" }
+            ]
+          }
+          EOF
+          git config user.name "gabluchi-release-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add release-info.json
+          git commit -m "chore: release-info.json for ${TAG}" || echo "no changes"
+          git push origin HEAD:main
