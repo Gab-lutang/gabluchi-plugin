@@ -5,12 +5,12 @@
     {
       "name": "plugin.zip",
       "browser_download_url": "https://github.com/Gab-lutang/gabluchi-plugin/releases/download/v1.0.4/plugin.zip",
-      "digest": "BB6CD4DDCD8AE3721137123BD0FDE697AD4ADD25B9BD80F1F34BD7B48EDC9720"
+      "digest": "bb6cd4ddcd8ae3721137123bd0fde697ad4add25b9bd80f1f34bd7b48edc9720"
     },
     {
       "name": "winmm.dll",
       "browser_download_url": "https://github.com/Gab-lutang/gabluchi-plugin/releases/download/v1.0.4/winmm.dll",
-      "digest": "DC1594774D3003F7C82FBCDAAC4CC9BBC81D7EE2AB82DD5F47C4F04CC3BD8236"
+      "digest": "dc1594774d3003f7c82fbcdaac4cc9bbc81d7ee2ab82dd5f47c4f04cc3bd8236"
     }
   ]
 }
