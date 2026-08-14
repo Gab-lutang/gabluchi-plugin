@@ -534,7 +534,7 @@
   if (window.__GabLuchiInjected) return;
   window.__GabLuchiInjected = true;
 
-  window.__GabLuchiFrontendVersion = "1.0.3";
+  window.__GabLuchiFrontendVersion = "1.0.4";
 
   // ── Embedded translations (all locales; lazy-parsed per active language) ──
   // Each value is the locale's "strings" map as a JSON string; only the active
@@ -812,15 +812,13 @@
         item.className = "gabluchi-api-item";
         item.setAttribute("data-api-name", s.name);
         item.style.cssText =
-          "display:flex;align-items:center;justify-content:space-between;padding:10px 14px;margin-bottom:8px;background:rgba(" +
-          colors.rgbString +
-          ",0.1);border:1px solid " +
-          colors.borderRgba +
-          ";border-radius:4px;transition:border-color 0.15s ease;";
+          "display:flex;align-items:center;justify-content:space-between;padding:9px 12px;margin-bottom:6px;background:transparent;border:1px solid " +
+          colors.hairline +
+          ";border-radius:4px;transition:background 0.15s ease, border-color 0.15s ease;";
         const left = document.createElement("div");
         left.style.cssText =
-          "font-size:14px;color:" +
-          colors.textSecondary +
+          "font-size:13px;color:" +
+          colors.text +
           ";font-weight:500;";
         left.textContent = s.displayName || s.name;
         const right = document.createElement("div");
@@ -862,10 +860,12 @@
         if (clickable && s.canDownload && !s.downloading) {
           item.style.cursor = "pointer";
           item.onmouseover = function () {
-            item.style.borderColor = colors.accent;
+            item.style.background = colors.hoverBg;
+            item.style.borderColor = colors.hairline;
           };
           item.onmouseout = function () {
-            item.style.borderColor = colors.borderRgba;
+            item.style.background = "transparent";
+            item.style.borderColor = colors.hairline;
           };
           item.onclick = function () {
             if (picking) return;
@@ -1252,9 +1252,23 @@
       : [102, 192, 244];
   }
 
+  // Minimal chrome: neutral hairlines and hover states derived from the theme's surface
+  // darkness, so the UI reads clean on both dark and light themes instead of drowning in accent tint.
+  function resolveNeutral(theme) {
+    const base = hexToRgb(theme.bgPrimary);
+    const light =
+      base[0] * 0.299 + base[1] * 0.587 + base[2] * 0.114 > 140;
+    return {
+      hairline: light ? "rgba(15,23,32,0.18)" : "rgba(255,255,255,0.16)",
+      hairlineSoft: light ? "rgba(15,23,32,0.08)" : "rgba(255,255,255,0.08)",
+      hoverBg: light ? "rgba(15,23,32,0.06)" : "rgba(255,255,255,0.06)",
+    };
+  }
+
   function getThemeColors() {
     const theme = getCurrentTheme();
     const rgb = hexToRgb(theme.accent);
+    const neutral = resolveNeutral(theme);
     return {
       modalBg: theme.bgSecondary,
       border: theme.accent,
@@ -1272,17 +1286,23 @@
       bgTertiary: theme.bgTertiary,
       bgHover: theme.bgHover,
       rgbString: rgb.join(","),
+      hairline: neutral.hairline,
+      hairlineSoft: neutral.hairlineSoft,
+      hoverBg: neutral.hoverBg,
+      scrim: "rgba(8,12,16,0.5)",
+      shadowSoft: "0 12px 40px rgba(0,0,0,0.45)",
     };
   }
 
   function generateThemeStyles(theme) {
+    const neutral = resolveNeutral(theme);
     return `
-            /* Force overlay backdrops to follow the active theme (overrides inline styles) */
+            /* Force overlay backdrops to a neutral dark scrim (overrides inline styles) */
             .gabluchi-settings-overlay,
             .gabluchi-overlay,
             .gabluchi-loadedapps-overlay {
-                background: rgba(${theme.rgbString}, 0.18) !important;
-                backdrop-filter: blur(5px) !important;
+                background: rgba(8, 12, 16, 0.5) !important;
+                backdrop-filter: blur(3px) !important;
             }
 
             /* Prefer overlay-scoped select rules to override theme CSS files */
@@ -1291,10 +1311,10 @@
             .gabluchi-loadedapps-overlay select {
                 background-color: ${theme.bgTertiary} !important;
                 color: ${theme.text} !important;
-                border: 1px solid ${theme.border} !important;
-                border-radius: 3px !important;
-                padding: 6px 8px !important;
-                font-size: 14px !important;
+                border: 1px solid ${neutral.hairline} !important;
+                border-radius: 2px !important;
+                padding: 5px 8px !important;
+                font-size: 13px !important;
             }
             .gabluchi-settings-overlay select option,
             .gabluchi-overlay select option,
@@ -1311,43 +1331,45 @@
             .gabluchi-settings-overlay select:hover,
             .gabluchi-overlay select:hover,
             .gabluchi-loadedapps-overlay select:hover {
-                border-color: ${theme.borderHover} !important;
+                border-color: ${neutral.hairline} !important;
+                background-color: ${theme.bgHover} !important;
             }
             .gabluchi-settings-overlay select:focus,
             .gabluchi-overlay select:focus,
             .gabluchi-loadedapps-overlay select:focus {
                 outline: none !important;
                 border-color: ${theme.accent} !important;
-                box-shadow: 0 0 0 2px ${theme.shadow} !important;
+                box-shadow: none !important;
             }
             .gabluchi-btn {
-                padding: 10px 18px;
-                background: ${theme.bgSecondary};
-                border: 1px solid ${theme.border.replace("0.3", "0.6")};
-                border-radius: 8px;
+                padding: 9px 16px;
+                background: transparent;
+                border: 1px solid ${neutral.hairline};
+                border-radius: 5px;
                 color: ${theme.text};
-                font-size: 14px;
+                font-size: 13px;
                 font-weight: 500;
                 text-decoration: none;
                 transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
                 cursor: pointer;
             }
             .gabluchi-btn:hover:not([data-disabled="1"]) {
-                background: ${theme.bgHover};
-                border-color: ${theme.borderHover};
+                background: ${neutral.hoverBg};
+                border-color: ${neutral.hairline};
             }
             .gabluchi-btn.primary {
                 background: ${theme.accent};
                 border-color: ${theme.accent};
-                color: ${theme.text};
+                color: ${theme.bgPrimary};
                 font-weight: 600;
             }
             .gabluchi-btn.primary:hover:not([data-disabled="1"]) {
                 background: ${theme.accentLight};
                 border-color: ${theme.accentLight};
+                color: ${theme.bgPrimary};
             }
 
-            /* Modern Toggle Switch */
+            /* Minimal Toggle Switch */
             .gabluchi-toggle-container {
                 display: flex;
                 align-items: center;
@@ -1364,8 +1386,8 @@
             .gabluchi-toggle {
                 position: relative;
                 display: inline-block;
-                width: 50px;
-                height: 26px;
+                width: 44px;
+                height: 24px;
                 flex-shrink: 0;
             }
             .gabluchi-toggle input {
@@ -1380,32 +1402,29 @@
                 left: 0;
                 right: 0;
                 bottom: 0;
-                background-color: rgba(255, 255, 255, 0.1);
-                transition: .4s;
-                border-radius: 34px;
-                border: 1px solid rgba(255, 255, 255, 0.2);
+                background-color: ${neutral.hairline};
+                transition: .3s;
+                border-radius: 24px;
             }
             .gabluchi-slider:before {
                 position: absolute;
                 content: "";
-                height: 18px;
-                width: 18px;
-                left: 3px;
-                bottom: 3px;
-                background-color: #ffffff;
-                transition: .4s;
+                height: 16px;
+                width: 16px;
+                left: 4px;
+                bottom: 4px;
+                background-color: ${theme.text};
+                transition: .3s;
                 border-radius: 50%;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
             }
             input:checked + .gabluchi-slider {
                 background-color: ${theme.accent};
-                border-color: ${theme.accent};
             }
             input:checked + .gabluchi-slider:before {
-                transform: translateX(24px);
+                transform: translateX(20px);
             }
             .gabluchi-slider:hover {
-                border-color: ${theme.accent};
+                background-color: ${neutral.hairline};
             }
 
             @keyframes fadeIn {
@@ -1415,7 +1434,7 @@
             @keyframes slideUp {
                 from {
                     opacity: 0;
-                    transform: translateY(6px);
+                    transform: translateY(4px);
                 }
                 to {
                     opacity: 1;
@@ -1431,29 +1450,29 @@
                 50% { opacity: 0.7; }
             }
 
-            /* Store header button - GabLuchi themed icon button */
+            /* Store header button - minimal ghost icon button */
             button.gabluchi-header-button {
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
                 align-self: center;
-                width: 36px;
-                height: 36px;
+                width: 34px;
+                height: 34px;
                 padding: 0;
-                border: 1px solid ${theme.border.replace("0.3", "0.6")};
+                border: 1px solid ${neutral.hairline};
                 border-radius: 4px;
-                background: ${theme.bgSecondary};
+                background: transparent;
                 color: ${theme.text};
                 cursor: pointer;
                 transition: background 0.15s ease, border-color 0.15s ease;
                 margin-left: 12px;
             }
             button.gabluchi-header-button:hover {
-                background: ${theme.bgHover};
-                border-color: ${theme.borderHover};
+                background: ${neutral.hoverBg};
+                border-color: ${neutral.hairline};
             }
             button.gabluchi-header-button:focus-visible {
-                outline: 2px solid ${theme.accent};
+                outline: 1px solid ${theme.accent};
                 outline-offset: 2px;
             }
             button.gabluchi-header-button img,
@@ -1554,19 +1573,19 @@
         const overlay = document.createElement("div");
         overlay.className = "gabluchi-settings-overlay";
         overlay.style.cssText =
-          "position:fixed;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:center;justify-content:center;";
+          "position:fixed;inset:0;background:rgba(8,12,16,0.5);backdrop-filter:blur(3px);z-index:99999;display:flex;align-items:center;justify-content:center;";
 
         const modal = document.createElement("div");
         const colors = getThemeColors();
-        modal.style.cssText = `position:relative;background:${colors.modalBg};color:${colors.text};border:1px solid ${colors.border};border-radius:10px;width:460px;padding:20px 24px;box-shadow:0 4px 16px rgba(0,0,0,0.35), 0 0 0 1px ${colors.shadowRgba};animation:slideUp 0.15s ease-out;`;
+        modal.style.cssText = `position:relative;background:${colors.modalBg};color:${colors.text};border:1px solid ${colors.hairline};border-radius:6px;width:440px;padding:22px 24px;box-shadow:0 12px 40px rgba(0,0,0,0.45);animation:slideUp 0.15s ease-out;`;
 
         const header = document.createElement("div");
-        header.style.cssText = `display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid ${colors.borderRgba};`;
+        header.style.cssText = `display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid ${colors.hairlineSoft};`;
 
         const title = document.createElement("div");
-        title.style.cssText = `display:flex;align-items:center;gap:10px;font-size:22px;color:${colors.text};font-weight:600;`;
+        title.style.cssText = `display:flex;align-items:center;gap:9px;font-size:17px;color:${colors.text};font-weight:600;`;
         const titleIcon = document.createElement("img");
-        titleIcon.style.cssText = "width:24px;height:24px;border-radius:4px;";
+        titleIcon.style.cssText = "width:18px;height:18px;border-radius:3px;";
         titleIcon.alt = "GabLuchi";
         try {
           Millennium.callServerMethod("gabluchi", "GetIconDataUrl", {
@@ -1601,16 +1620,18 @@
           btn.id = id;
           btn.href = "#";
           const btnColors = getThemeColors();
-          btn.style.cssText = `display:flex;align-items:center;justify-content:center;width:40px;height:40px;background:rgba(${btnColors.rgbString},0.1);border:1px solid ${btnColors.borderRgba};border-radius:8px;color:${btnColors.accent};font-size:18px;text-decoration:none;transition:background 0.15s ease, border-color 0.15s ease;cursor:pointer;`;
+          btn.style.cssText = `display:flex;align-items:center;justify-content:center;width:38px;height:38px;background:transparent;border:1px solid transparent;border-radius:4px;color:${btnColors.textSecondary};font-size:17px;text-decoration:none;transition:background 0.15s ease, border-color 0.15s ease, color 0.15s ease;cursor:pointer;`;
           btn.innerHTML = '<i class="fa-solid ' + iconClass + '"></i>';
           btn.title = t(titleKey, titleFallback);
           btn.onmouseover = function () {
-            this.style.background = `rgba(${btnColors.rgbString},0.2)`;
-            this.style.borderColor = btnColors.accent;
+            this.style.background = btnColors.hoverBg;
+            this.style.borderColor = btnColors.hairline;
+            this.style.color = btnColors.text;
           };
           btn.onmouseout = function () {
-            this.style.background = `rgba(${btnColors.rgbString},0.1)`;
-            this.style.borderColor = btnColors.borderRgba;
+            this.style.background = "transparent";
+            this.style.borderColor = "transparent";
+            this.style.color = btnColors.textSecondary;
           };
           iconButtons.appendChild(btn);
           return btn;
@@ -1624,9 +1645,9 @@
         if (window.__GABLUCHI_IS_BIG_PICTURE__) {
           const tip = document.createElement("div");
           tip.style.cssText =
-            "background:rgba(102,192,244,0.15);border-left:3px solid #66c0f4;padding:12px 16px;border-radius:6px;font-size:13px;color:#c7d5e0;margin-bottom:16px;line-height:1.5;";
+            "background:rgba(255,255,255,0.05);border-left:2px solid rgba(255,255,255,0.2);padding:10px 14px;border-radius:4px;font-size:12.5px;color:rgba(199,213,224,0.9);margin-bottom:16px;line-height:1.5;";
           tip.innerHTML =
-            '<i class="fa-solid fa-info-circle" style="margin-right:8px;color:#66c0f4;"></i>' +
+            '<i class="fa-solid fa-info-circle" style="margin-right:8px;color:rgba(199,213,224,0.7);"></i>' +
             t(
               "bigpicture.mouseTip",
               "To use mouse mode in Steam: Guide Button + Right Joystick, click with RB",
@@ -1636,35 +1657,35 @@
 
         const container = document.createElement("div");
         container.style.cssText =
-          "margin-top:16px;display:flex;flex-direction:column;gap:12px;align-items:stretch;";
+          "margin-top:14px;display:flex;flex-direction:column;gap:8px;align-items:stretch;";
 
         function createCardButton(id, key, fallback, iconClass) {
           const btn = document.createElement("a");
           btn.id = id;
           btn.href = "#";
           const btnColors = getThemeColors();
-          btn.style.cssText = `display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;flex:1;background:rgba(${btnColors.rgbString},0.06);border:1px solid ${btnColors.borderRgba};border-radius:8px;color:${btnColors.text};font-size:11px;font-weight:500;text-decoration:none;transition:background 0.15s ease, border-color 0.15s ease;cursor:pointer;text-align:center;padding:14px 6px;min-width:0;`;
+          btn.style.cssText = `display:flex;align-items:center;justify-content:flex-start;gap:10px;background:transparent;border:1px solid ${btnColors.hairline};border-radius:5px;color:${btnColors.text};font-size:13px;font-weight:500;text-decoration:none;transition:background 0.15s ease, border-color 0.15s ease;cursor:pointer;text-align:left;padding:10px 14px;min-width:0;width:100%;box-sizing:border-box;`;
           const iconHtml = iconClass
             ? '<i class="fa-solid ' +
               iconClass +
-              '" style="font-size:22px;color:' +
+              '" style="font-size:14px;width:18px;text-align:center;color:' +
               btnColors.accent +
-              ';"></i>'
+              ';flex-shrink:0;"></i>'
             : "";
           const textSpan =
-            '<span style="text-align:center;line-height:1.3;">' +
+            '<span style="text-align:left;line-height:1.3;flex:1;">' +
             t(key, fallback) +
             "</span>";
           btn.innerHTML = iconHtml + textSpan;
           btn.onmouseover = function () {
             const c = getThemeColors();
-            this.style.background = `rgba(${c.rgbString},0.15)`;
-            this.style.borderColor = c.accent;
+            this.style.background = c.hoverBg;
+            this.style.borderColor = c.hairline;
           };
           btn.onmouseout = function () {
             const c = getThemeColors();
-            this.style.background = `rgba(${c.rgbString},0.06)`;
-            this.style.borderColor = c.borderRgba;
+            this.style.background = "transparent";
+            this.style.borderColor = c.hairline;
           };
           return btn;
         }
@@ -1695,27 +1716,29 @@
         removeBtn.id = "lt-settings-remove-lua";
         removeBtn.href = "#";
         const removeBtnColors = getThemeColors();
-        removeBtn.style.cssText = `display:none;align-items:center;justify-content:center;gap:8px;padding:10px 16px;background:rgba(${removeBtnColors.rgbString},0.06);border:1px solid ${removeBtnColors.borderRgba};border-radius:8px;color:${removeBtnColors.textSecondary};font-size:13px;font-weight:500;text-decoration:none;transition:background 0.15s ease, border-color 0.15s ease;cursor:pointer;text-align:center;`;
+        removeBtn.style.cssText = `display:none;align-items:center;justify-content:center;gap:8px;padding:9px 14px;background:transparent;border:1px solid ${removeBtnColors.hairline};border-radius:5px;color:${removeBtnColors.textSecondary};font-size:13px;font-weight:500;text-decoration:none;transition:background 0.15s ease, border-color 0.15s ease;cursor:pointer;text-align:center;`;
         removeBtn.innerHTML =
-          '<i class="fa-solid fa-trash-can" style="font-size:13px;"></i><span>' +
+          '<i class="fa-solid fa-trash-can" style="font-size:13px;color:rgba(255,107,107,0.9);"></i><span>' +
           t("menu.removeGabLuchi", "Remove via GabLuchi") +
           "</span>";
         removeBtn.onmouseover = function () {
           const c = getThemeColors();
-          this.style.background = `rgba(${c.rgbString},0.15)`;
-          this.style.borderColor = c.accent;
+          this.style.background = "rgba(255,107,107,0.1)";
+          this.style.borderColor = "rgba(255,107,107,0.5)";
+          this.style.color = c.text;
         };
         removeBtn.onmouseout = function () {
           const c = getThemeColors();
-          this.style.background = `rgba(${c.rgbString},0.06)`;
-          this.style.borderColor = c.borderRgba;
+          this.style.background = "transparent";
+          this.style.borderColor = c.hairline;
+          this.style.color = c.textSecondary;
         };
         container.appendChild(removeBtn);
 
         // Card button grid
         const cardGrid = document.createElement("div");
         cardGrid.style.cssText =
-          "display:flex;gap:10px;justify-content:center;";
+          "display:flex;flex-direction:column;gap:8px;justify-content:stretch;";
 
         const fixesMenuBtn = createCardButton(
           "lt-settings-fixes-menu",
@@ -2096,19 +2119,19 @@
     const overlay = document.createElement("div");
     overlay.className = "gabluchi-overlay";
     overlay.style.cssText =
-      "position:fixed;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:center;justify-content:center;";
+      "position:fixed;inset:0;background:rgba(8,12,16,0.5);backdrop-filter:blur(3px);z-index:99999;display:flex;align-items:center;justify-content:center;";
 
     const modal = document.createElement("div");
     const colors = getThemeColors();
-    modal.style.cssText = `background:${colors.modalBg};color:${colors.text};border:1px solid ${colors.border};border-radius:10px;width:520px;padding:28px 32px;box-shadow:0 4px 16px rgba(0,0,0,0.35), 0 0 0 1px ${colors.shadowRgba};animation:slideUp 0.15s ease-out;`;
+    modal.style.cssText = `background:${colors.modalBg};color:${colors.text};border:1px solid ${colors.hairline};border-radius:6px;width:480px;padding:24px 26px;box-shadow:0 12px 40px rgba(0,0,0,0.45);animation:slideUp 0.15s ease-out;`;
 
     const title = document.createElement("div");
     const titleColors = getThemeColors();
-    title.style.cssText = `display:flex;align-items:center;gap:10px;font-size:20px;color:${titleColors.text};margin-bottom:16px;font-weight:600;`;
+    title.style.cssText = `display:flex;align-items:center;gap:9px;font-size:17px;color:${titleColors.text};margin-bottom:14px;font-weight:600;`;
     title.className = "gabluchi-title";
     const dlTitleIcon = document.createElement("i");
     dlTitleIcon.className = "fa-solid fa-cloud-arrow-down";
-    dlTitleIcon.style.cssText = `color:${titleColors.accent};font-size:20px;`;
+    dlTitleIcon.style.cssText = `color:${titleColors.accent};font-size:16px;`;
     title.appendChild(dlTitleIcon);
     const dlTitleText = document.createElement("span");
     dlTitleText.textContent = lt("Select Download Source");
@@ -2125,15 +2148,15 @@
     // pre-fill it here — doing so raced with (and clobbered) the clickable rows.
 
     const body = document.createElement("div");
-    body.style.cssText = `display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;line-height:1.4;margin-bottom:12px;color:${colors.textSecondary};`;
+    body.style.cssText = `display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;line-height:1.4;margin-bottom:10px;color:${colors.textSecondary};`;
     body.className = "gabluchi-status";
     body.innerHTML =
-      '<i class="fa-solid fa-spinner" style="font-size:14px;animation: spin 1.5s linear infinite;"></i><span>' +
+      '<i class="fa-solid fa-spinner" style="font-size:13px;animation: spin 1.5s linear infinite;"></i><span>' +
       lt("Checking availability…") +
       "</span>";
 
     const progressWrap = document.createElement("div");
-    progressWrap.style.cssText = `background:rgba(0,0,0,0.3);height:6px;border-radius:3px;overflow:hidden;position:relative;display:none;margin-top:12px;`;
+    progressWrap.style.cssText = `background:rgba(0,0,0,0.35);height:4px;border-radius:2px;overflow:hidden;position:relative;display:none;margin-top:12px;`;
     progressWrap.className = "gabluchi-progress-wrap";
     const progressBar = document.createElement("div");
     progressBar.style.cssText = `height:100%;width:0%;background:${colors.accent};transition:width 0.3s ease;`;
@@ -2315,25 +2338,25 @@
     const overlay = document.createElement("div");
     overlay.className = "gabluchi-alert-overlay";
     overlay.style.cssText =
-      "position:fixed;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);z-index:100001;display:flex;align-items:center;justify-content:center;";
+      "position:fixed;inset:0;background:rgba(8,12,16,0.5);backdrop-filter:blur(3px);z-index:100001;display:flex;align-items:center;justify-content:center;";
 
     const modal = document.createElement("div");
     const alertModalColors = getThemeColors();
-    modal.style.cssText = `background:${alertModalColors.modalBg};color:${alertModalColors.text};border:1px solid ${alertModalColors.border};border-radius:10px;width:420px;padding:28px 32px;box-shadow:0 4px 16px rgba(0,0,0,0.35), 0 0 0 1px ${alertModalColors.shadowRgba};animation:slideUp 0.15s ease-out;`;
+    modal.style.cssText = `background:${alertModalColors.modalBg};color:${alertModalColors.text};border:1px solid ${alertModalColors.hairline};border-radius:6px;width:400px;padding:24px 26px;box-shadow:0 12px 40px rgba(0,0,0,0.45);animation:slideUp 0.15s ease-out;`;
 
     const alertIconWrap = document.createElement("div");
-    alertIconWrap.style.cssText = "text-align:center;margin-bottom:12px;";
+    alertIconWrap.style.cssText = "text-align:center;margin-bottom:10px;";
     const alertIcon = document.createElement("i");
     alertIcon.className = "fa-solid fa-circle-info";
-    alertIcon.style.cssText = `color:${alertModalColors.accent};font-size:32px;`;
+    alertIcon.style.cssText = `color:${alertModalColors.accent};font-size:24px;`;
     alertIconWrap.appendChild(alertIcon);
 
     const titleEl = document.createElement("div");
-    titleEl.style.cssText = `font-size:20px;color:${alertModalColors.text};margin-bottom:12px;font-weight:600;text-align:center;`;
+    titleEl.style.cssText = `font-size:17px;color:${alertModalColors.text};margin-bottom:10px;font-weight:600;text-align:center;`;
     titleEl.textContent = String(title || "GabLuchi");
 
     const messageEl = document.createElement("div");
-    messageEl.style.cssText = `font-size:14px;line-height:1.6;margin-bottom:24px;color:${alertModalColors.textSecondary};text-align:center;`;
+    messageEl.style.cssText = `font-size:13px;line-height:1.6;margin-bottom:20px;color:${alertModalColors.textSecondary};text-align:center;`;
     messageEl.textContent = String(message || "");
 
     const btnRow = document.createElement("div");
@@ -2405,25 +2428,25 @@
     const overlay = document.createElement("div");
     overlay.className = "gabluchi-confirm-overlay";
     overlay.style.cssText =
-      "position:fixed;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);z-index:100001;display:flex;align-items:center;justify-content:center;";
+      "position:fixed;inset:0;background:rgba(8,12,16,0.5);backdrop-filter:blur(3px);z-index:100001;display:flex;align-items:center;justify-content:center;";
 
     const modal = document.createElement("div");
     const confirmColors = getThemeColors();
-    modal.style.cssText = `background:${confirmColors.modalBg};color:${confirmColors.text};border:1px solid ${confirmColors.border};border-radius:10px;width:420px;padding:28px 32px;box-shadow:0 4px 16px rgba(0,0,0,0.35), 0 0 0 1px ${confirmColors.shadowRgba};animation:slideUp 0.15s ease-out;`;
+    modal.style.cssText = `background:${confirmColors.modalBg};color:${confirmColors.text};border:1px solid ${confirmColors.hairline};border-radius:6px;width:400px;padding:24px 26px;box-shadow:0 12px 40px rgba(0,0,0,0.45);animation:slideUp 0.15s ease-out;`;
 
     const confirmIconWrap = document.createElement("div");
-    confirmIconWrap.style.cssText = "text-align:center;margin-bottom:12px;";
+    confirmIconWrap.style.cssText = "text-align:center;margin-bottom:10px;";
     const confirmIcon = document.createElement("i");
     confirmIcon.className = "fa-solid fa-circle-question";
-    confirmIcon.style.cssText = `color:${confirmColors.accent};font-size:32px;`;
+    confirmIcon.style.cssText = `color:${confirmColors.accent};font-size:24px;`;
     confirmIconWrap.appendChild(confirmIcon);
 
     const titleEl = document.createElement("div");
-    titleEl.style.cssText = `font-size:20px;color:${confirmColors.text};margin-bottom:12px;font-weight:600;text-align:center;`;
+    titleEl.style.cssText = `font-size:17px;color:${confirmColors.text};margin-bottom:10px;font-weight:600;text-align:center;`;
     titleEl.textContent = String(title || "GabLuchi");
 
     const messageEl = document.createElement("div");
-    messageEl.style.cssText = `font-size:14px;line-height:1.6;margin-bottom:24px;color:${confirmColors.textSecondary};text-align:center;`;
+    messageEl.style.cssText = `font-size:13px;line-height:1.6;margin-bottom:20px;color:${confirmColors.textSecondary};text-align:center;`;
     messageEl.textContent = String(message || lt("Are you sure?"));
 
     const btnRow = document.createElement("div");
@@ -3385,17 +3408,17 @@
     const overlay = document.createElement("div");
     overlay.className = "gabluchi-loadedapps-overlay";
     overlay.style.cssText =
-      "position:fixed;inset:0;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:center;justify-content:center;";
+      "position:fixed;inset:0;background:rgba(8,12,16,0.5);backdrop-filter:blur(3px);z-index:99999;display:flex;align-items:center;justify-content:center;";
     const modal = document.createElement("div");
     const loadedAppsModalColors = getThemeColors();
-    modal.style.cssText = `background:${loadedAppsModalColors.modalBg};color:${loadedAppsModalColors.text};border:1px solid ${loadedAppsModalColors.border};border-radius:8px;width:560px;padding:28px 32px;box-shadow:0 4px 16px rgba(0,0,0,0.35), 0 0 0 1px ${loadedAppsModalColors.shadowRgba};animation:slideUp 0.15s ease-out;`;
+    modal.style.cssText = `background:${loadedAppsModalColors.modalBg};color:${loadedAppsModalColors.text};border:1px solid ${loadedAppsModalColors.hairline};border-radius:6px;width:500px;padding:24px 26px;box-shadow:0 12px 40px rgba(0,0,0,0.45);animation:slideUp 0.15s ease-out;`;
     const title = document.createElement("div");
     const loadedAppsTitleColors = getThemeColors();
-    title.style.cssText = `font-size:22px;color:${loadedAppsTitleColors.text};margin-bottom:20px;font-weight:600;text-align:center;`;
+    title.style.cssText = `font-size:17px;color:${loadedAppsTitleColors.text};margin-bottom:16px;font-weight:600;text-align:left;`;
     title.textContent = lt("GabLuchi · Added Games");
     const body = document.createElement("div");
     const loadedAppsBodyColors = getThemeColors();
-    body.style.cssText = `font-size:14px;line-height:1.8;margin-bottom:16px;max-height:320px;overflow:auto;padding:16px;border:1px solid ${loadedAppsBodyColors.border};border-radius:12px;background:${loadedAppsBodyColors.bgContainer};`;
+    body.style.cssText = `font-size:14px;line-height:1.8;margin-bottom:16px;max-height:320px;overflow:auto;padding:6px;border:1px solid ${loadedAppsBodyColors.hairline};border-radius:6px;background:rgba(0,0,0,0.18);`;
     if (apps && apps.length) {
       const list = document.createElement("div");
       apps.forEach(function (item) {
@@ -3407,18 +3430,18 @@
         a.href = "steam://install/" + String(appid);
         a.textContent = String(name || appid);
         const linkColors = getThemeColors();
-        a.style.cssText = `display:block;color:${linkColors.textSecondary};text-decoration:none;padding:10px 16px;margin-bottom:8px;background:rgba(${linkColors.rgbString},0.08);border:1px solid rgba(${linkColors.rgbString},0.2);border-radius:4px;transition:background 0.15s ease, border-color 0.15s ease, color 0.15s ease;`;
+        a.style.cssText = `display:block;color:${linkColors.text};text-decoration:none;padding:9px 12px;margin-bottom:6px;background:transparent;border:1px solid transparent;border-radius:4px;transition:background 0.15s ease, border-color 0.15s ease, color 0.15s ease;`;
         a.onmouseover = function () {
           const c = getThemeColors();
-          this.style.background = `rgba(${c.rgbString},0.2)`;
-          this.style.borderColor = c.accent;
+          this.style.background = c.hoverBg;
+          this.style.borderColor = c.hairline;
           this.style.color = c.text;
         };
         a.onmouseout = function () {
           const c = getThemeColors();
-          this.style.background = `rgba(${c.rgbString},0.08)`;
-          this.style.borderColor = `rgba(${c.rgbString},0.2)`;
-          this.style.color = c.textSecondary;
+          this.style.background = "transparent";
+          this.style.borderColor = "transparent";
+          this.style.color = c.text;
         };
         a.onclick = function (e) {
           e.preventDefault();
