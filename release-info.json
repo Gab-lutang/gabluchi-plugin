@@ -1,0 +1,16 @@
+{
+  "tag_name": "v1.0.4",
+  "published_at": "2026-08-14T05:00:05Z",
+  "assets": [
+    {
+      "name": "plugin.zip",
+      "browser_download_url": "https://github.com/Gab-lutang/gabluchi-plugin/releases/download/v1.0.4/plugin.zip",
+      "digest": "BB6CD4DDCD8AE3721137123BD0FDE697AD4ADD25B9BD80F1F34BD7B48EDC9720"
+    },
+    {
+      "name": "winmm.dll",
+      "browser_download_url": "https://github.com/Gab-lutang/gabluchi-plugin/releases/download/v1.0.4/winmm.dll",
+      "digest": "DC1594774D3003F7C82FBCDAAC4CC9BBC81D7EE2AB82DD5F47C4F04CC3BD8236"
+    }
+  ]
+}
