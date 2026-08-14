@@ -534,6 +534,8 @@
   if (window.__GabLuchiInjected) return;
   window.__GabLuchiInjected = true;
 
+  window.__GabLuchiFrontendVersion = "1.0.3";
+
   // ── Embedded translations (all locales; lazy-parsed per active language) ──
   // Each value is the locale's "strings" map as a JSON string; only the active
   // language is JSON.parse'd (ltGetLocaleStrings). No backend/fetch needed.
