@@ -119,6 +119,14 @@ function OpenFix(appid)
     return backend_request("POST", "/open/fix/" .. tostring(appid))
 end
 
+function HealthCheckForApp(appid)
+    return backend_request("GET", "/health/" .. tostring(appid))
+end
+
+function RepairFixForApp(appid)
+    return backend_request("POST", "/health/" .. tostring(appid) .. "/repair")
+end
+
 -- "Games added since last Steam restart" popup: read the list, then dismiss it.
 function ReadLoadedApps()
     return backend_request("GET", "/loaded-apps")
