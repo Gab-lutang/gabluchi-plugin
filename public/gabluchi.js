@@ -1904,53 +1904,18 @@
               window.Millennium.callServerMethod("gabluchi", "HealthCheckForApp", { appid })
                 .then(function (res) {
                   try {
-                    const data = typeof res === "string" ? JSON.parse(res) : res;
+                    var data = typeof res === "string" ? JSON.parse(res) : res;
                     if (!data.success) {
                       ShowGabLuchiAlert("Health Check", t("menu.healthCheckError", "Error: ") + (data.error || "Unknown error"));
                       return;
                     }
-                    let msg = "<b>" + data.gameName + "</b><br><br>";
-                    msg += "Score: <span style='color:" + data.scoreColor + ";font-weight:bold;'>" + data.healthScore + "/100 — " + data.scoreLabel + "</span><br><br>";
-                    if (data.issues && data.issues.length > 0) {
-                      msg += "<b>Issues found:</b><br>";
-                      data.issues.forEach(function (issue) {
-                        const icon = issue.severity === "critical" ? "&#9888;" : issue.severity === "warning" ? "&#9888;" : "&#8505;";
-                        msg += icon + " <b>" + issue.title + "</b> — " + issue.description + "<br>";
-                      });
-                      if (data.issues.some(function (i) { return i.hasFix; })) {
-                        msg += "<br><a href='#' id='lt-health-repair-link' style='color:#66c0f4;cursor:pointer;text-decoration:underline;'>&#128295; Repair fix files</a>";
-                      }
-                    } else {
-                      msg += "&#9989; No issues found. Game is healthy!";
-                    }
-                    ShowGabLuchiAlert("Health Check", msg);
-                    setTimeout(function () {
-                      const repairLink = document.getElementById("lt-health-repair-link");
-                      if (repairLink) {
-                        repairLink.addEventListener("click", function (ev) {
-                          ev.preventDefault();
-                          repairLink.textContent = t("menu.repairing", "Repairing...");
-                          window.Millennium.callServerMethod("gabluchi", "RepairFixForApp", { appid })
-                            .then(function (res2) {
-                              const r = typeof res2 === "string" ? JSON.parse(res2) : res2;
-                              if (r.success) {
-                                ShowGabLuchiAlert("Health Check", "&#9989; " + r.message);
-                              } else {
-                                ShowGabLuchiAlert("Health Check", "&#10060; " + (r.error || "Repair failed"));
-                              }
-                            })
-                            .catch(function () {
-                              ShowGabLuchiAlert("Health Check", "&#10060; " + t("menu.repairFailed", "Repair failed — is GabLuchi running?"));
-                            });
-                        });
-                      }
-                    }, 200);
+                    showHealthCheckModal(data, appid);
                   } catch (err) {
-                    ShowGabLuchiAlert("Health Check", "&#10060; " + t("menu.healthCheckError", "Failed to parse health check response"));
+                    ShowGabLuchiAlert("Health Check", t("menu.healthCheckError", "Failed to parse health check response"));
                   }
                 })
                 .catch(function () {
-                  ShowGabLuchiAlert("Health Check", "&#10060; " + t("menu.healthCheckUnavailable", "Health check unavailable — is GabLuchi running?"));
+                  ShowGabLuchiAlert("Health Check", t("menu.healthCheckUnavailable", "Health check unavailable — is GabLuchi running?"));
                 });
             } catch (err) {
               backendLog("GabLuchi: Health Check button error: " + err);
@@ -2500,6 +2465,191 @@
         alert(String(title) + "\n\n" + String(message));
       } catch (_) {}
     }
+  }
+
+  // Full health check result modal
+  function showHealthCheckModal(data, appid) {
+    ensureGabLuchiStyles();
+    ensureFontAwesome();
+    var c = getThemeColors();
+
+    var overlay = document.createElement("div");
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(8,12,16,0.5);backdrop-filter:blur(3px);z-index:100001;display:flex;align-items:center;justify-content:center;";
+
+    var modal = document.createElement("div");
+    modal.style.cssText = "background:" + c.modalBg + ";color:" + c.text + ";border:1px solid " + c.hairline + ";border-radius:6px;width:440px;padding:24px 26px;box-shadow:0 12px 40px rgba(0,0,0,0.45);animation:slideUp 0.15s ease-out;";
+
+    // Header icon
+    var iconWrap = document.createElement("div");
+    iconWrap.style.cssText = "text-align:center;margin-bottom:8px;";
+    var icon = document.createElement("i");
+    icon.className = "fa-solid fa-heart-pulse";
+    icon.style.cssText = "color:" + c.accent + ";font-size:22px;";
+    iconWrap.appendChild(icon);
+
+    // Game name
+    var nameEl = document.createElement("div");
+    nameEl.style.cssText = "font-size:16px;font-weight:600;text-align:center;margin-bottom:12px;color:" + c.text + ";";
+    nameEl.textContent = data.gameName || "Unknown Game";
+
+    // Score ring container
+    var scoreWrap = document.createElement("div");
+    scoreWrap.style.cssText = "text-align:center;margin-bottom:14px;";
+
+    var scoreCircle = document.createElement("div");
+    var scorePct = Math.max(0, Math.min(100, data.healthScore || 0));
+    var ringColor = data.scoreColor || "#9ca3af";
+    var ringSize = 72;
+    var strokeW = 5;
+    var radius = (ringSize - strokeW) / 2;
+    var circumference = 2 * Math.PI * radius;
+    var offset = circumference - (scorePct / 100) * circumference;
+    scoreCircle.style.cssText = "width:" + ringSize + "px;height:" + ringSize + "px;margin:0 auto 6px;";
+    scoreCircle.innerHTML = '<svg width="' + ringSize + '" height="' + ringSize + '" viewBox="0 0 ' + ringSize + ' ' + ringSize + '">' +
+      '<circle cx="' + (ringSize / 2) + '" cy="' + (ringSize / 2) + '" r="' + radius + '" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="' + strokeW + '"/>' +
+      '<circle cx="' + (ringSize / 2) + '" cy="' + (ringSize / 2) + '" r="' + radius + '" fill="none" stroke="' + ringColor + '" stroke-width="' + strokeW + '" stroke-linecap="round" ' +
+      'stroke-dasharray="' + circumference + '" stroke-dashoffset="' + offset + '" transform="rotate(-90 ' + (ringSize / 2) + ' ' + (ringSize / 2) + ')" style="transition:stroke-dashoffset 0.6s ease;"/>' +
+      '<text x="' + (ringSize / 2) + '" y="' + (ringSize / 2) + '" text-anchor="middle" dominant-baseline="central" fill="' + ringColor + '" font-size="18" font-weight="700" style="font-family:inherit;">' + scorePct + '</text></svg>';
+
+    var scoreLabel = document.createElement("div");
+    scoreLabel.style.cssText = "display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:4px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;";
+    var pillBg = "rgba(255,255,255,0.06)";
+    var pillBorder = "rgba(255,255,255,0.12)";
+    var pillColor = c.textSecondary;
+    if (data.healthScore >= 80) {
+      pillBg = "rgba(92,184,92,0.15)"; pillBorder = "rgba(92,184,92,0.3)"; pillColor = "#5cb85c";
+    } else if (data.healthScore >= 40) {
+      pillBg = "rgba(255,193,7,0.15)"; pillBorder = "rgba(255,193,7,0.3)"; pillColor = "#ffc107";
+    } else {
+      pillBg = "rgba(255,80,80,0.15)"; pillBorder = "rgba(255,80,80,0.3)"; pillColor = "#ff5050";
+    }
+    scoreLabel.style.cssText += "background:" + pillBg + ";border:1px solid " + pillBorder + ";color:" + pillColor + ";";
+    scoreLabel.textContent = (data.scoreLabel || "").toUpperCase();
+
+    scoreWrap.appendChild(scoreCircle);
+    scoreWrap.appendChild(scoreLabel);
+
+    // Issues list
+    var issues = data.issues || [];
+    var issueList = document.createElement("div");
+    issueList.style.cssText = "margin-bottom:16px;";
+
+    if (issues.length > 0) {
+      var issueHeader = document.createElement("div");
+      issueHeader.style.cssText = "font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:" + c.textSecondary + ";margin-bottom:8px;";
+      issueHeader.textContent = issues.length + " " + (issues.length === 1 ? "Issue" : "Issues") + " Found";
+      issueList.appendChild(issueHeader);
+
+      issues.forEach(function (issue) {
+        var card = document.createElement("div");
+        card.style.cssText = "display:flex;align-items:flex-start;gap:10px;padding:9px 12px;margin-bottom:6px;background:rgba(255,255,255,0.03);border:1px solid " + c.hairline + ";border-radius:4px;";
+
+        var sevIcon = document.createElement("i");
+        var sevColor = "#9ca3af";
+        var sevClass = "fa-solid fa-circle-info";
+        if (issue.severity === "critical") { sevClass = "fa-solid fa-circle-exclamation"; sevColor = "#ff5050"; }
+        else if (issue.severity === "warning") { sevClass = "fa-solid fa-triangle-exclamation"; sevColor = "#ffc107"; }
+        sevIcon.className = sevClass;
+        sevIcon.style.cssText = "color:" + sevColor + ";font-size:13px;margin-top:2px;flex-shrink:0;width:16px;text-align:center;";
+
+        var textCol = document.createElement("div");
+        textCol.style.cssText = "flex:1;min-width:0;";
+
+        var titleSpan = document.createElement("div");
+        titleSpan.style.cssText = "font-size:13px;font-weight:600;color:" + c.text + ";margin-bottom:2px;";
+        titleSpan.textContent = issue.title || "";
+
+        var descSpan = document.createElement("div");
+        descSpan.style.cssText = "font-size:12px;color:" + c.textSecondary + ";line-height:1.4;";
+        descSpan.textContent = issue.description || "";
+
+        textCol.appendChild(titleSpan);
+        textCol.appendChild(descSpan);
+        card.appendChild(sevIcon);
+        card.appendChild(textCol);
+        issueList.appendChild(card);
+      });
+    } else {
+      var healthyWrap = document.createElement("div");
+      healthyWrap.style.cssText = "text-align:center;padding:8px 0;margin-bottom:8px;";
+      var healthyIcon = document.createElement("i");
+      healthyIcon.className = "fa-solid fa-circle-check";
+      healthyIcon.style.cssText = "color:#5cb85c;font-size:28px;display:block;margin-bottom:6px;";
+      var healthyText = document.createElement("div");
+      healthyText.style.cssText = "font-size:13px;color:" + c.textSecondary + ";";
+      healthyText.textContent = "No issues found. Game is healthy!";
+      healthyWrap.appendChild(healthyIcon);
+      healthyWrap.appendChild(healthyText);
+      issueList.appendChild(healthyWrap);
+    }
+
+    // Button row
+    var btnRow = document.createElement("div");
+    btnRow.style.cssText = "display:flex;gap:8px;justify-content:center;";
+
+    var closeBtn = document.createElement("a");
+    closeBtn.href = "#";
+    closeBtn.className = "gabluchi-btn";
+    closeBtn.style.cssText = "min-width:100px;display:flex;align-items:center;justify-content:center;text-align:center;";
+    closeBtn.innerHTML = "<span>" + lt("Close") + "</span>";
+    closeBtn.onclick = function (ev) { ev.preventDefault(); overlay.remove(); };
+
+    btnRow.appendChild(closeBtn);
+
+    if (issues.some(function (i) { return i.hasFix; })) {
+      var repairBtn = document.createElement("a");
+      repairBtn.href = "#";
+      repairBtn.className = "gabluchi-btn primary";
+      repairBtn.style.cssText = "min-width:140px;display:flex;align-items:center;justify-content:center;text-align:center;";
+      repairBtn.innerHTML = '<i class="fa-solid fa-wrench" style="margin-right:6px;font-size:12px;"></i><span>' + lt("Repair fix files") + "</span>";
+      repairBtn.onclick = function (ev) {
+        ev.preventDefault();
+        repairBtn.innerHTML = '<i class="fa-solid fa-spinner" style="margin-right:6px;font-size:12px;animation:spin 1.5s linear infinite;"></i><span>' + lt("menu.repairing", "Repairing...") + "</span>";
+        repairBtn.style.pointerEvents = "none";
+        repairBtn.style.opacity = "0.7";
+        window.Millennium.callServerMethod("gabluchi", "RepairFixForApp", { appid: appid })
+          .then(function (res2) {
+            var r = typeof res2 === "string" ? JSON.parse(res2) : res2;
+            if (r.success) {
+              var msgEl = modal.querySelector(".lt-repair-result");
+              if (msgEl) msgEl.remove();
+              var result = document.createElement("div");
+              result.className = "lt-repair-result";
+              result.style.cssText = "text-align:center;font-size:12px;color:#5cb85c;margin-bottom:10px;";
+              result.textContent = (r.message || "Done") + (r.fixedCount ? " (" + r.fixedCount + " fixed)" : "");
+              modal.insertBefore(result, btnRow);
+              repairBtn.innerHTML = '<i class="fa-solid fa-check" style="margin-right:6px;font-size:12px;"></i><span>' + lt("Repaired") + "</span>";
+              repairBtn.style.opacity = "1";
+            } else {
+              repairBtn.innerHTML = '<i class="fa-solid fa-xmark" style="margin-right:6px;font-size:12px;"></i><span>' + lt("Failed") + "</span>";
+              repairBtn.style.opacity = "1";
+              repairBtn.style.pointerEvents = "";
+            }
+          })
+          .catch(function () {
+            repairBtn.innerHTML = '<i class="fa-solid fa-xmark" style="margin-right:6px;font-size:12px;"></i><span>' + t("menu.repairFailed", "Failed") + "</span>";
+            repairBtn.style.opacity = "1";
+            repairBtn.style.pointerEvents = "";
+          });
+      };
+      btnRow.insertBefore(repairBtn, closeBtn);
+    }
+
+    modal.appendChild(iconWrap);
+    modal.appendChild(nameEl);
+    modal.appendChild(scoreWrap);
+    modal.appendChild(issueList);
+    modal.appendChild(btnRow);
+    overlay.appendChild(modal);
+
+    overlay.addEventListener("click", function (ev) {
+      if (ev.target === overlay) overlay.remove();
+    });
+
+    document.body.appendChild(overlay);
+    setTimeout(function () {
+      if (window.GamepadNav) window.GamepadNav.scanElements();
+    }, 150);
   }
 
   // Custom modal confirm dialog, styled to match Steam
